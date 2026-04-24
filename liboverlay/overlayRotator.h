@@ -98,7 +98,6 @@ public:
     virtual bool queueBuffer(int fd, uint32_t offset) = 0;
     virtual void dump() const = 0;
     virtual void getDump(char *buf, size_t len) const = 0;
-    virtual void setFrameRate(uint32_t frame_rate) = 0;
     inline void setCurrBufReleaseFd(const int& fence) {
         mMem.setCurrBufReleaseFd(fence);
     }
@@ -153,7 +152,6 @@ public:
     virtual bool queueBuffer(int fd, uint32_t offset);
     virtual void dump() const;
     virtual void getDump(char *buf, size_t len) const;
-    virtual void setFrameRate(uint32_t frame_rate);
 
 private:
     explicit MdpRot();
@@ -227,7 +225,6 @@ public:
     virtual bool queueBuffer(int fd, uint32_t offset);
     virtual void dump() const;
     virtual void getDump(char *buf, size_t len) const;
-    virtual void setFrameRate(uint32_t frame_rate);
 
 private:
     explicit MdssRot();
