@@ -28,6 +28,10 @@ ifeq ($(call is-board-platform-in-list, $(MSM_VIDC_TARGET_LIST)), true)
     common_flags += -DVENUS_COLOR_FORMAT
 endif
 
+ifneq (,$(filter $(TARGET_BOARD_PLATFORM),msm8916))
+    common_flags += -DVENUS_COLOR_FORMAT
+endif
+
 ifeq ($(call is-board-platform-in-list, $(MASTER_SIDE_CP_TARGET_LIST)), true)
     common_flags += -DMASTER_SIDE_CP
 endif
