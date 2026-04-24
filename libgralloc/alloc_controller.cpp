@@ -76,7 +76,7 @@ using namespace qdutils;
 
 ANDROID_SINGLETON_STATIC_INSTANCE(AdrenoMemInfo);
 
-static void getUBwcWidthAndHeight(int, int, int, int&, int&);
+static void getUBwcWidthAndHeight(int&, int&);
 static unsigned int getUBwcSize(int, int, int, const int, const int);
 
 //Common functions
@@ -205,7 +205,7 @@ void AdrenoMemInfo::getAlignedWidthAndHeight(int width, int height, int format,
     }
 
     if (ubwc_enabled) {
-        getUBwcWidthAndHeight(width, height, format, aligned_w, aligned_h);
+        getUBwcWidthAndHeight(aligned_w, aligned_h);
         return;
     }
 
@@ -244,10 +244,6 @@ void AdrenoMemInfo::getAlignedWidthAndHeight(int width, int height, int format,
         case HAL_PIXEL_FORMAT_NV12_ENCODEABLE:
             aligned_w = VENUS_Y_STRIDE(COLOR_FMT_NV12, width);
             aligned_h = VENUS_Y_SCANLINES(COLOR_FMT_NV12, height);
-            break;
-        case HAL_PIXEL_FORMAT_YCrCb_420_SP_VENUS:
-            aligned_w = VENUS_Y_STRIDE(COLOR_FMT_NV21, width);
-            aligned_h = VENUS_Y_SCANLINES(COLOR_FMT_NV21, height);
             break;
         case HAL_PIXEL_FORMAT_BLOB:
         case HAL_PIXEL_FORMAT_RAW_OPAQUE:
@@ -588,9 +584,6 @@ unsigned int getSize(int format, int width, int height, int usage,
         case HAL_PIXEL_FORMAT_NV12_ENCODEABLE:
             size = VENUS_BUFFER_SIZE(COLOR_FMT_NV12, width, height);
             break;
-        case HAL_PIXEL_FORMAT_YCrCb_420_SP_VENUS:
-            size = VENUS_BUFFER_SIZE(COLOR_FMT_NV21, width, height);
-            break;
         case HAL_PIXEL_FORMAT_BLOB:
         case HAL_PIXEL_FORMAT_RAW_OPAQUE:
             if(height != 1) {
@@ -695,7 +688,6 @@ int getYUVPlaneInfo(private_handle_t* hnd, struct android_ycbcr* ycbcr)
     int width = hnd->width;
     int height = hnd->height;
     unsigned int ystride, cstride;
-    unsigned int alignment = 4096;
 
     memset(ycbcr->reserved, 0, sizeof(ycbcr->reserved));
 
@@ -723,38 +715,9 @@ int getYUVPlaneInfo(private_handle_t* hnd, struct android_ycbcr* ycbcr)
             ycbcr->chroma_step = 2;
         break;
 
-        case HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS_UBWC:
-            // NV12_UBWC buffer has these 4 planes in the following sequence:
-            // Y_Meta_Plane, Y_Plane, UV_Meta_Plane, UV_Plane
-            unsigned int y_meta_stride, y_meta_height, y_meta_size;
-            unsigned int y_stride, y_height, y_size;
-            unsigned int c_meta_stride, c_meta_height, c_meta_size;
-
-            y_meta_stride = VENUS_Y_META_STRIDE(COLOR_FMT_NV12_UBWC, width);
-            y_meta_height = VENUS_Y_META_SCANLINES(COLOR_FMT_NV12_UBWC, height);
-            y_meta_size = ALIGN((y_meta_stride * y_meta_height), alignment);
-
-            y_stride = VENUS_Y_STRIDE(COLOR_FMT_NV12_UBWC, width);
-            y_height = VENUS_Y_SCANLINES(COLOR_FMT_NV12_UBWC, height);
-            y_size = ALIGN((y_stride * y_height), alignment);
-
-            c_meta_stride = VENUS_UV_META_STRIDE(COLOR_FMT_NV12_UBWC, width);
-            c_meta_height = VENUS_UV_META_SCANLINES(COLOR_FMT_NV12_UBWC, height);
-            c_meta_size = ALIGN((c_meta_stride * c_meta_height), alignment);
-
-            ycbcr->y  = (void*)(hnd->base + y_meta_size);
-            ycbcr->cb = (void*)(hnd->base + y_meta_size + y_size + c_meta_size);
-            ycbcr->cr = (void*)(hnd->base + y_meta_size + y_size +
-                                c_meta_size + 1);
-            ycbcr->ystride = y_stride;
-            ycbcr->cstride = VENUS_UV_STRIDE(COLOR_FMT_NV12_UBWC, width);
-            ycbcr->chroma_step = 2;
-        break;
-
         case HAL_PIXEL_FORMAT_YCrCb_420_SP:
         case HAL_PIXEL_FORMAT_YCrCb_422_SP:
         case HAL_PIXEL_FORMAT_YCrCb_420_SP_ADRENO:
-        case HAL_PIXEL_FORMAT_YCrCb_420_SP_VENUS:
         case HAL_PIXEL_FORMAT_NV21_ZSL:
         case HAL_PIXEL_FORMAT_RAW16:
         case HAL_PIXEL_FORMAT_RAW10:
@@ -783,6 +746,7 @@ int getYUVPlaneInfo(private_handle_t* hnd, struct android_ycbcr* ycbcr)
         case HAL_PIXEL_FORMAT_YCbCr_422_I:
         case HAL_PIXEL_FORMAT_YCrCb_422_I:
         case HAL_PIXEL_FORMAT_YCbCr_420_SP_TILED:
+        case HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS_UBWC:
         default:
         ALOGD("%s: Invalid format passed: 0x%x", __FUNCTION__,
                 hnd->format);
@@ -842,71 +806,16 @@ void free_buffer(private_handle_t *hnd)
 
 }
 
-// UBWC helper functions
-static bool isUBwcFormat(int format)
+// UBWC is not supported on msm8916
+bool isUBwcEnabled(int /*format*/, int /*usage*/)
 {
-    // Explicitly defined UBWC formats
-    switch(format)
-    {
-        case HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS_UBWC:
-            return true;
-        default:
-            return false;
-    }
-}
-
-static bool isUBwcSupported(int format)
-{
-    // Existing HAL formats with UBWC support
-    switch(format)
-    {
-        case HAL_PIXEL_FORMAT_RGB_565:
-        case HAL_PIXEL_FORMAT_RGBA_8888:
-        case HAL_PIXEL_FORMAT_RGBX_8888:
-        case HAL_PIXEL_FORMAT_NV12_ENCODEABLE:
-        case HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS:
-        case HAL_PIXEL_FORMAT_RGBA_1010102:
-            return true;
-        default:
-            return false;
-    }
-}
-
-bool isUBwcEnabled(int format, int usage)
-{
-    // Allow UBWC, if client is using an explicitly defined UBWC pixel format.
-    if (isUBwcFormat(format))
-        return true;
-
-    // Allow UBWC, if client sets UBWC gralloc usage flag & GPU supports format.
-    if ((usage & GRALLOC_USAGE_PRIVATE_ALLOC_UBWC) && isUBwcSupported(format) &&
-        AdrenoMemInfo::getInstance().isUBWCSupportedByGPU(format)) {
-        // Allow UBWC, only if CPU usage flags are not set
-        if (!(usage & (GRALLOC_USAGE_SW_READ_MASK |
-                      GRALLOC_USAGE_SW_WRITE_MASK))) {
-            return true;
-        }
-    }
     return false;
 }
 
-static void getUBwcWidthAndHeight(int width, int height, int format,
-        int& aligned_w, int& aligned_h)
+static void getUBwcWidthAndHeight(int& aligned_w, int& aligned_h)
 {
-    switch (format)
-    {
-        case HAL_PIXEL_FORMAT_NV12_ENCODEABLE:
-        case HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS:
-        case HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS_UBWC:
-            aligned_w = VENUS_Y_STRIDE(COLOR_FMT_NV12_UBWC, width);
-            aligned_h = VENUS_Y_SCANLINES(COLOR_FMT_NV12_UBWC, height);
-            break;
-        default:
-            ALOGE("%s: Unsupported pixel format: 0x%x", __FUNCTION__, format);
-            aligned_w = 0;
-            aligned_h = 0;
-            break;
-    }
+    aligned_w = 0;
+    aligned_h = 0;
 }
 
 static void getUBwcBlockSize(int bpp, int& block_width, int& block_height)
@@ -977,8 +886,6 @@ static unsigned int getUBwcSize(int width, int height, int format,
         case HAL_PIXEL_FORMAT_NV12_ENCODEABLE:
         case HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS:
         case HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS_UBWC:
-            size = VENUS_BUFFER_SIZE(COLOR_FMT_NV12_UBWC, width, height);
-            break;
         default:
             ALOGE("%s: Unsupported pixel format: 0x%x", __FUNCTION__, format);
             break;

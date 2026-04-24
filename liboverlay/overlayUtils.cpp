@@ -131,8 +131,6 @@ int getMdpFormat(int format) {
             //NV12 encodeable format maps to the venus format on
             //B-Family targets
             return MDP_Y_CBCR_H2V2_VENUS;
-        case HAL_PIXEL_FORMAT_YCrCb_420_SP_VENUS:
-            return MDP_Y_CRCB_H2V2_VENUS;
         default:
             //Unsupported by MDP
             //---gralloc_priv.h-----
@@ -153,19 +151,7 @@ int getMdpFormat(int format, int flags)
 
     // Use UBWC extension, if UBWC is enabled
     if (uBwcEnabled) {
-        switch (format) {
-            case HAL_PIXEL_FORMAT_RGBA_8888:
-                return MDP_RGBA_8888_UBWC;
-            case HAL_PIXEL_FORMAT_RGB_565:
-                return MDP_RGB_565_UBWC;
-            case HAL_PIXEL_FORMAT_NV12_ENCODEABLE:
-            case HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS:
-            case HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS_UBWC:
-                return MDP_Y_CBCR_H2V2_UBWC;
-            default:
-                ALOGE("%s: Unsupported HAL format = 0x%x", __func__, format);
-                break;
-        }
+        ALOGE("%s: UBWC not supported, HAL format = 0x%x", __func__, format);
     }
 
     if(!tileEnabled) {
@@ -232,8 +218,6 @@ int getHALFormat(int mdpFormat) {
             return HAL_PIXEL_FORMAT_YCrCb_444_SP;
         case MDP_Y_CBCR_H2V2_VENUS:
             return HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS;
-        case MDP_Y_CRCB_H2V2_VENUS:
-            return HAL_PIXEL_FORMAT_YCrCb_420_SP_VENUS;
         default:
             ALOGE("%s: Unsupported MDP format = 0x%x", __func__, mdpFormat);
             return -1;
