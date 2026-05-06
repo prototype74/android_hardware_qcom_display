@@ -17,10 +17,16 @@ LOCAL_PATH:= $(call my-dir)
 # hw/<COPYPIX_HARDWARE_MODULE_ID>.<ro.board.platform>.so
 include $(CLEAR_VARS)
 
+ifeq ($(TARGET_USES_SEC_LIGHTS),true)
+LOCAL_SRC_FILES := sec_lights.c
+LOCAL_CFLAGS := $(common_flags) -DLOG_TAG=\"SEC\ LightsHAL\" -Wno-unused-parameter
+else
 LOCAL_SRC_FILES := lights.c
+LOCAL_CFLAGS := $(common_flags) -DLOG_TAG=\"qdlights\"
+endif
+
 LOCAL_MODULE_RELATIVE_PATH := hw
 LOCAL_SHARED_LIBRARIES := liblog
-LOCAL_CFLAGS := $(common_flags) -DLOG_TAG=\"qdlights\"
 LOCAL_MODULE := lights.$(TARGET_BOARD_PLATFORM)
 LOCAL_MODULE_TAGS := optional
 
