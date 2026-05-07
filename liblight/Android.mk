@@ -19,7 +19,7 @@ include $(CLEAR_VARS)
 
 ifeq ($(TARGET_USES_SEC_LIGHTS),true)
 LOCAL_SRC_FILES := sec_lights.c
-LOCAL_CFLAGS := $(common_flags) -DLOG_TAG=\"SEC\ LightsHAL\" -Wno-unused-parameter
+LOCAL_CFLAGS := $(common_flags) -DLOG_TAG=\"SEC\ LightsHAL\"
 else
 LOCAL_SRC_FILES := lights.c
 LOCAL_CFLAGS := $(common_flags) -DLOG_TAG=\"qdlights\"

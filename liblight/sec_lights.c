@@ -92,7 +92,7 @@ static const char *const g_light_paths[LIGHT_DEV_COUNT][5] = {
     },
 };
 
-/* GED (Generic) LED fallback paths */
+// GED (Generic) LED fallback paths
 static const char *const GED_LED_BRIGHTNESS_PATHS[3] = {
     "/sys/class/leds/led_r/brightness",
     "/sys/class/leds/led_g/brightness",
@@ -117,7 +117,7 @@ static const char *const GED_LED_DELAY_OFF_PATHS[3] = {
     "/sys/class/leds/led_b/delay_off",
 };
 
-/* Resolved file descriptors */
+// Resolved file descriptors
 static int g_light_fds[LIGHT_DEV_COUNT] = { -1, -1, -1, -1, -1 };
 static int g_ged_brightness_fds[3] = { -1, -1, -1 };
 static int g_ged_trigger_fds[3] = { -1, -1, -1 };
@@ -125,25 +125,28 @@ static int g_retry_count = 0;
 
 /******************************************************************************/
 
+static const char *const g_light_dev_names[LIGHT_DEV_COUNT] = {
+    "lcd", "buttons", "keyboard", "led_pattern", "led_blink",
+};
+
 static void initialize_fds(void)
 {
     for (int i = 0; i < LIGHT_DEV_COUNT; i++) {
         for (int j = 0; g_light_paths[i][j] != NULL; j++) {
-            ALOGD("!@ initialize_fds : g_lights_file_paths[%d][%d] : %s",
-                  i, j, g_light_paths[i][j]);
-
             int fd = open(g_light_paths[i][j], O_RDWR);
             if (fd >= 0) {
                 g_light_fds[i] = fd;
-                ALOGD("!@ initialize_fds : FOUND! : 0x%x", fd);
+                ALOGI("%s: %s using %s", __FUNCTION__,
+                      g_light_dev_names[i], g_light_paths[i][j]);
                 break;
             }
             g_light_fds[i] = -errno;
-            ALOGD("!@ initialize_fds : g_lights_fds Open error! : [%d]", errno);
         }
+        if (g_light_fds[i] < 0)
+            ALOGW("%s: %s not available", __FUNCTION__, g_light_dev_names[i]);
     }
 
-    /* If sec_led not available, open GED LED fallback paths */
+    // If sec_led not available, open GED LED fallback paths
     if (g_light_fds[LIGHT_SEC_LED_BLINK] < 0) {
         for (int i = 0; i < 3; i++) {
             g_ged_brightness_fds[i] = open(GED_LED_BRIGHTNESS_PATHS[i], O_RDWR);
@@ -151,9 +154,11 @@ static void initialize_fds(void)
         }
         for (int i = 0; i < 3; i++) {
             if (g_ged_brightness_fds[i] < 0)
-                ALOGE("led_brightness_fd : NOT FOUND! : color = %d(0=R,1=G,2=B).", i);
+                ALOGE("%s: GED led_%c brightness not available",
+                      __FUNCTION__, "rgb"[i]);
             if (g_ged_trigger_fds[i] < 0)
-                ALOGE("led_trigger_fd : NOT FOUND! : color = %d(0=R,1=G,2=B).", i);
+                ALOGE("%s: GED led_%c trigger not available",
+                      __FUNCTION__, "rgb"[i]);
         }
     }
 }
@@ -167,12 +172,14 @@ static void reinitialize_fd(int index)
         int fd = open(g_light_paths[index][j], O_RDWR);
         if (fd >= 0) {
             g_light_fds[index] = fd;
-            ALOGD("!@ reinitialize_fds : FOUND! : 0x%x", fd);
+            ALOGW("%s: %s reinitialized via %s", __FUNCTION__,
+                  g_light_dev_names[index], g_light_paths[index][j]);
             return;
         }
         g_light_fds[index] = -errno;
-        ALOGD("!@ reinitialize_fds : g_lights_fds Open error! : [%d]", errno);
     }
+    ALOGE("%s: %s reinitialize failed (errno=%d)", __FUNCTION__,
+          g_light_dev_names[index], errno);
 }
 
 static void init_globals(void)
@@ -186,40 +193,21 @@ static void init_globals(void)
 
 /******************************************************************************/
 
-static const char *const g_light_fd_names[LIGHT_DEV_COUNT] = {
-    "lcd", "button", "keyboard", "led_pattern", "led_blink",
-};
-
 static int write_int(int fd, int value)
 {
-    if (fd < 0) {
-        ALOGE("write_int failed to open %d", fd);
-        return -errno;
-    }
-
-    /* Identify FD name for logging */
-    const char *name = "unknown";
-    for (int i = 0; i < LIGHT_DEV_COUNT; i++) {
-        if (g_light_fds[i] == fd) {
-            name = g_light_fd_names[i];
-            break;
-        }
-    }
+    if (fd < 0)
+        return -EBADF;
 
     char buf[20];
     int len = snprintf(buf, sizeof(buf), "%d\n", value);
-    ALOGD("%s : %d +", name, value);
     ssize_t ret = write(fd, buf, len);
-    ALOGD("%s : %d -", name, value);
     return ret == -1 ? -errno : 0;
 }
 
 static int write_led_info(int fd, const char *fmt, ...)
 {
-    if (fd < 0) {
-        ALOGE("write_led_info failed to open %d", fd);
-        return -errno;
-    }
+    if (fd < 0)
+        return -EBADF;
 
     char buf[32];
     va_list args;
@@ -258,10 +246,11 @@ static int
 set_light_backlight(struct light_device_t *dev,
         struct light_state_t const *state)
 {
+    (void)dev;
     int brightness;
 
     if (state->flashMode == 2)
-        brightness = state->color;  /* raw pass-through */
+        brightness = state->color;  // raw pass-through
     else
         brightness = rgb_to_brightness(state);
 
@@ -275,6 +264,7 @@ static int
 set_light_buttons(struct light_device_t *dev,
         struct light_state_t const *state)
 {
+    (void)dev;
     int val = (state->color & 0x00ffffff) ? 1 : 0;
 
     pthread_mutex_lock(&g_buttons_mutex);
@@ -287,6 +277,7 @@ static int
 set_light_keyboard(struct light_device_t *dev,
         struct light_state_t const *state)
 {
+    (void)dev;
     int val = (state->color & 0x00ffffff) ? 1 : 0;
 
     pthread_mutex_lock(&g_keyboard_mutex);
@@ -311,18 +302,18 @@ write_blink_ged(unsigned int color, int onMS, int offMS)
         onMS = offMS = 0;
     }
 
-    /* Reset brightness */
+    // Reset brightness
     write_led_info(g_ged_brightness_fds[0], "%d", 0);
     write_led_info(g_ged_brightness_fds[1], "%d", 0);
     write_led_info(g_ged_brightness_fds[2], "%d", 0);
 
     if (offMS > 0 && color != 0) {
-        /* Blink mode: set trigger to timer */
+        // Blink mode: set trigger to timer
         write_led_info(g_ged_trigger_fds[0], red   ? "timer" : "none");
         write_led_info(g_ged_trigger_fds[1], green ? "timer" : "none");
         write_led_info(g_ged_trigger_fds[2], blue  ? "timer" : "none");
 
-        /* Open delay FDs, write, close */
+        // Open delay FDs, write, close
         for (int i = 0; i < 3; i++) {
             int fd_off = open(GED_LED_DELAY_OFF_PATHS[i], O_RDWR);
             int fd_on  = open(GED_LED_DELAY_ON_PATHS[i], O_RDWR);
@@ -331,18 +322,18 @@ write_blink_ged(unsigned int color, int onMS, int offMS)
                 write_led_info(fd_off, "%d", offMS);
                 close(fd_off);
             } else {
-                ALOGE("led_delay_off_fd : NOT FOUND! : color = %d(0=R,1=G,2=B).", i);
+                ALOGE("%s: GED led_%c delay_off open failed", __FUNCTION__, "rgb"[i]);
             }
 
             if (fd_on >= 0) {
                 write_led_info(fd_on, "%d", onMS);
                 close(fd_on);
             } else {
-                ALOGE("led_delay_on_fd : NOT FOUND! : color = %d(0=R,1=G,2=B).", i);
+                ALOGE("%s: GED led_%c delay_on open failed", __FUNCTION__, "rgb"[i]);
             }
         }
     } else {
-        /* Solid or off: trigger none, set brightness */
+        // Solid or off: trigger none, set brightness
         write_led_info(g_ged_trigger_fds[0], "none");
         write_led_info(g_ged_trigger_fds[1], "none");
         write_led_info(g_ged_trigger_fds[2], "none");
@@ -359,29 +350,29 @@ set_light_led(struct light_state_t const *state)
     int onMS = state->flashOnMS;
     int offMS = state->flashOffMS;
 
-    /* Retry logic for permission errors */
+    pthread_mutex_lock(&g_led_mutex);
+
+    // Retry logic for permission errors (sysfs not yet accessible at boot)
     if (check_led_permission_err() && g_retry_count < 3) {
         reinitialize_fd(LIGHT_SEC_LED_PATTERN);
         reinitialize_fd(LIGHT_SEC_LED_BLINK);
         g_retry_count++;
     }
 
-    pthread_mutex_lock(&g_led_mutex);
-
     switch (flashMode) {
-    case 0:  /* LIGHT_FLASH_NONE — turn off */
+    case 0:  // LIGHT_FLASH_NONE
         if (g_light_fds[LIGHT_SEC_LED_PATTERN] >= 0)
             write_int(g_light_fds[LIGHT_SEC_LED_PATTERN], 0);
         else
             write_blink_ged(0, 0, 0);
         break;
 
-    case 1:  /* LIGHT_FLASH_TIMED */
-    case 2:  /* LIGHT_FLASH_HARDWARE */
+    case 1:  // LIGHT_FLASH_TIMED
+    case 2:  // LIGHT_FLASH_HARDWARE
     {
         unsigned int color = state->color;
         if (g_light_fds[LIGHT_SEC_LED_BLINK] >= 0) {
-            /* SEC LED: write "0xCOLOR onMS offMS\n" */
+            // SEC LED: write "0xCOLOR onMS offMS\n"
             char buf[32];
             int len = snprintf(buf, sizeof(buf), "0x%x %d %d\n", color, onMS, offMS);
             write(g_light_fds[LIGHT_SEC_LED_BLINK], buf, len);
@@ -391,7 +382,7 @@ set_light_led(struct light_state_t const *state)
         break;
     }
 
-    /* Samsung LED pattern modes (ledservice) */
+    // Samsung LED pattern modes (ledservice)
     case 10: write_int(g_light_fds[LIGHT_SEC_LED_PATTERN], 1); break;
     case 11: write_int(g_light_fds[LIGHT_SEC_LED_PATTERN], 2); break;
     case 12: write_int(g_light_fds[LIGHT_SEC_LED_PATTERN], 3); break;
@@ -411,6 +402,7 @@ static int
 set_light_battery(struct light_device_t *dev,
         struct light_state_t const *state)
 {
+    (void)dev;
     return set_light_led(state);
 }
 
@@ -418,6 +410,7 @@ static int
 set_light_notification(struct light_device_t *dev,
         struct light_state_t const *state)
 {
+    (void)dev;
     return set_light_led(state);
 }
 
@@ -425,6 +418,7 @@ static int
 set_light_attention(struct light_device_t *dev,
         struct light_state_t const *state)
 {
+    (void)dev;
     return set_light_led(state);
 }
 
@@ -432,6 +426,7 @@ static int
 set_light_led_service(struct light_device_t *dev,
         struct light_state_t const *state)
 {
+    (void)dev;
     return set_light_led(state);
 }
 
@@ -482,12 +477,15 @@ static int open_lights(const struct hw_module_t *module, const char *name,
             return -ENOSYS;
         set_light = set_light_led_service;
     } else {
+        ALOGW("%s: unknown light id '%s'", __FUNCTION__, name);
         return -EINVAL;
     }
 
     struct light_device_t *dev = malloc(sizeof(struct light_device_t));
-    if (!dev)
+    if (!dev) {
+        ALOGE("%s: failed to allocate device for '%s'", __FUNCTION__, name);
         return -ENOMEM;
+    }
 
     memset(dev, 0, sizeof(*dev));
     dev->common.tag = HARDWARE_DEVICE_TAG;
