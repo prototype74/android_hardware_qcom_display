@@ -5,7 +5,7 @@ else
 endif
 
 display-hals := libgralloc libcopybit liblight libmemtrack libqservice libqdutils
-display-hals += hdmi_cec include
+display-hals += hdmi_cec libdisplayconfig_hidl include
 
 ifeq ($(TARGET_USES_SDM), true)
     sdm-libs := sdm/libs
