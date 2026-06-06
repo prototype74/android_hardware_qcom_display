@@ -24,4 +24,5 @@ LOCAL_CFLAGS := -Wconversion -Wall -Werror -Wno-sign-conversion
 LOCAL_SHARED_LIBRARIES := liblog
 LOCAL_SRC_FILES := memtrack_msm.c kgsl.c
 LOCAL_MODULE := memtrack.$(TARGET_BOARD_PLATFORM)
+LOCAL_VENDOR_MODULE := true
 include $(BUILD_SHARED_LIBRARY)
