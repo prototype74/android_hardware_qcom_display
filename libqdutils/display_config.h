@@ -110,7 +110,7 @@ int getDisplayVisibleRegion(int dpy, hwc_rect_t &rect);
 int setViewFrame(int dpy, int l, int t, int r, int b);
 
 // Set the secondary display status(pause/resume/offline etc.,)
-int setSecondayDisplayStatus(int dpy, uint32_t status);
+int setSecondaryDisplayStatus(int dpy, uint32_t status);
 
 // Enable/Disable/Set refresh rate dynamically
 int configureDynRefeshRate(uint32_t op, uint32_t refreshRate);

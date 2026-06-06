@@ -144,7 +144,7 @@ int setViewFrame(int dpy, int l, int t, int r, int b) {
     return err;
 }
 
-int setSecondayDisplayStatus(int dpy, uint32_t status) {
+int setSecondaryDisplayStatus(int dpy, uint32_t status) {
     status_t err = (status_t) FAILED_TRANSACTION;
     sp<IQService> binder = getBinder();
     Parcel inParcel, outParcel;

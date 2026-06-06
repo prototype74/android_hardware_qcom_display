@@ -109,6 +109,7 @@ public:
         return Void();
     }
 
+    // TODO: typo might need a fix (depends on vendor/qcom/opensource)
     Return<int32_t> setSecondayDisplayStatus(
             ::vendor::display::config::V1_0::IDisplayConfig::DisplayType /*dpy*/,
             ::vendor::display::config::V1_0::IDisplayConfig::DisplayExternalStatus /*status*/) override {
