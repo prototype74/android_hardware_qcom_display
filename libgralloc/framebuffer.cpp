@@ -40,7 +40,6 @@
 #include "fb_priv.h"
 #include "gr.h"
 #include <cutils/properties.h>
-#include <profiler.h>
 
 #define EVEN_OUT(x) if (x & 0x0001) {x--;}
 
@@ -312,8 +311,6 @@ int mapFrameBufferLocked(framebuffer_device_t *dev)
     module->ydpi = ydpi;
     module->fps = fps;
     module->swapInterval = 1;
-
-    CALC_INIT();
 
     /*
      * map the framebuffer

@@ -38,7 +38,6 @@
 #include "hdmi.h"
 #include "hwc_copybit.h"
 #include "hwc_ad.h"
-#include "profiler.h"
 #include "hwc_virtual.h"
 #include "hwc_qdcm.h"
 
@@ -858,7 +857,6 @@ static int hwc_set(hwc_composer_device_1 *dev,
     }
     // This is only indicative of how many times SurfaceFlinger posts
     // frames to the display.
-    CALC_FPS();
     MDPComp::resetIdleFallBack();
     ctx->mVideoTransFlag = false;
     //Was locked at the beginning of prepare

@@ -11,7 +11,7 @@ LOCAL_CFLAGS                  := $(common_flags) -DLOG_TAG=\"qdutils\" -Wno-floa
 LOCAL_ADDITIONAL_DEPENDENCIES := $(common_deps)
 LOCAL_COPY_HEADERS_TO         := $(common_header_export_path)
 LOCAL_COPY_HEADERS            := mdp_version.h display_config.h
-LOCAL_SRC_FILES               := profiler.cpp mdp_version.cpp \
+LOCAL_SRC_FILES               := mdp_version.cpp \
                                  idle_invalidator.cpp \
                                  comptype.cpp qd_utils.cpp \
                                  display_config.cpp
