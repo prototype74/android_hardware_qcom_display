@@ -35,9 +35,8 @@
 #include "memalloc.h"
 #include "ionalloc.h"
 #include "gr.h"
-#include "comptype.h"
-#include "mdp_version.h"
 #include <qdMetaData.h>
+#include <cutils/properties.h>
 
 #ifdef VENUS_COLOR_FORMAT
 #include <media/msm_media_info.h>
@@ -72,9 +71,34 @@
 #endif
 
 using namespace gralloc;
-using namespace qdutils;
 
 ANDROID_SINGLETON_STATIC_INSTANCE(AdrenoMemInfo);
+
+static bool mdpSupportsMacroTile() {
+    char property[PROPERTY_VALUE_MAX];
+    if (property_get("persist.hwc.macro_tile_enable", property, NULL) <= 0)
+        return false;
+    if (strncmp(property, "1", PROPERTY_VALUE_MAX) &&
+        strncasecmp(property, "true", PROPERTY_VALUE_MAX))
+        return false;
+
+    FILE *fp = fopen("/sys/class/graphics/fb0/mdp/caps", "rb");
+    if (!fp)
+        return false;
+
+    bool supported = false;
+    char *line = NULL;
+    size_t len = 0;
+    while (getline(&line, &len, fp) != -1) {
+        if (strstr(line, "tile_format")) {
+            supported = true;
+            break;
+        }
+    }
+    free(line);
+    fclose(fp);
+    return supported;
+}
 
 static void getUBwcWidthAndHeight(int&, int&);
 static unsigned int getUBwcSize(int, int, int, const int, const int);
@@ -485,7 +509,7 @@ bool isMacroTileEnabled(int format, int usage)
 
     // Check whether GPU & MDSS supports MacroTiling feature
     if(AdrenoMemInfo::getInstance().isMacroTilingSupportedByGPU() &&
-            qdutils::MDPVersion::getInstance().supportsMacroTile())
+            mdpSupportsMacroTile())
     {
         // check the format
         switch(format)

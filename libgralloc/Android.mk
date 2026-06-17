@@ -23,7 +23,7 @@ LOCAL_VENDOR_MODULE           := true
 LOCAL_MODULE_TAGS             := optional
 LOCAL_C_INCLUDES              := $(common_includes) $(kernel_includes)
 LOCAL_SHARED_LIBRARIES        := $(common_libs) libmemalloc libqdMetaData
-LOCAL_SHARED_LIBRARIES        += libqdutils libGLESv1_CM
+LOCAL_SHARED_LIBRARIES        += libGLESv1_CM
 LOCAL_CFLAGS                  := $(common_flags) -DLOG_TAG=\"qdgralloc\"
 ifeq ($(USE_PREFERRED_CAMERA_FORMAT),true)
 LOCAL_CFLAGS                  += -DUSE_PREFERRED_CAMERA_FORMAT
@@ -43,7 +43,7 @@ LOCAL_MODULE                  := libmemalloc
 LOCAL_VENDOR_MODULE           := true
 LOCAL_MODULE_TAGS             := optional
 LOCAL_C_INCLUDES              := $(common_includes) $(kernel_includes)
-LOCAL_SHARED_LIBRARIES        := $(common_libs) libqdutils libdl
+LOCAL_SHARED_LIBRARIES        := $(common_libs) libdl
 LOCAL_CFLAGS                  := $(common_flags) -DLOG_TAG=\"qdmemalloc\"
 LOCAL_ADDITIONAL_DEPENDENCIES := $(common_deps) $(kernel_deps)
 LOCAL_SRC_FILES               := ionalloc.cpp alloc_controller.cpp
