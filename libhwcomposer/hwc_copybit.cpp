@@ -22,6 +22,7 @@
 #include <utils/Timers.h>
 #include <mdp_version.h>
 #include "hwc_copybit.h"
+#include "hwc_copybit_clear.h"
 #include "comptype.h"
 #include "gr.h"
 #include "hwc_utils.h"
@@ -629,7 +630,7 @@ bool  CopyBit::draw(hwc_context_t *ctx, hwc_display_contents_1_t *list,
     //means calling only commit without any draw. Hence avoid
     //clear call as well.
     if (not mSwapRect || isValidRect(mDirtyRect)) {
-       // cb_utils removed for sphal compatibility - GPU handles clear
+       clearRenderBuffer(getCopyBitDevice(), renderBuffer);
        mSwapRect = 0;
     }
 
@@ -691,6 +692,9 @@ int CopyBit::drawOverlap(hwc_context_t *ctx, hwc_display_contents_1_t *list) {
         ALOGE("%s: Render buffer layer handle is NULL", __FUNCTION__);
         return fd;
     }
+
+    //Clear the transparent or left out region on the render buffer
+    clearRenderBuffer(mEngine, renderBuffer);
 
     int copybitLayerCount = 0;
     for(int j = 0; j < ptorInfo->count; j++) {
