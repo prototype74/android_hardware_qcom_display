@@ -14,8 +14,8 @@ LOCAL_SHARED_LIBRARIES := \
     libhidltransport \
     libutils \
     liblog \
-    vendor.display.config@1.0_vendor \
-    vendor.display.config@1.1_vendor
+    vendor.display.config@1.0 \
+    vendor.display.config@1.1
 
 LOCAL_CFLAGS := -Wall -Werror
 
